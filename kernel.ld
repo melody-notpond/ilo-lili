@@ -6,43 +6,40 @@ SECTIONS
     /* text: text code section */
     . = 0x80200000;
     PROVIDE(text_start = .);
-    .text : { *(.text*) }
+    .text : { *(.text) }
 
-    /* data: initialized data segment */
-    .gnu_build_id : { *(.note.gnu.build-id*) }
+    /* data: Initialized data segment */
+    .gnu_build_id : { *(.note.gnu.build-id) }
 
     . = ALIGN(4096);
     PROVIDE(data_start = .);
-    .data : { *(.data*) }
+    .data : { *(.data) }
 
     . = ALIGN(4096);
     PROVIDE(ro_data_start = .);
-    .rodata : { *(.rodata*) }
-
-    . = ALIGN(4096);
-    PROVIDE(sdata_start = .);
-    .sdata : { *(.sdata*) }
-    .debug : { *(.debug*) }
+    .rodata : { *(.rodata) }
 
     . = ALIGN(4096);
     PROVIDE( __global_pointer$ = . + (4K / 2) );
     PROVIDE(sdata_start = .);
-    .sdata : { *(.sdata*) }
-    .sdata : { *(.bss*) }
-    .sdata : { *(.sbss*) }
-    .debug : { *(.debug*) }
+    .sdata : { *(.sdata) }
+    .sdata : { *(.bss) }
+    .sdata : { *(.sbss) }
+    .debug : { *(.debug) }
     PROVIDE(sdata_end = .);
 
     . += 0x1000;
 
     . = ALIGN(4096);
     PROVIDE(stack_start = .);
-    . += 0x2000;
+    . += 0x1000;
     PROVIDE(stack_top = .);
 
-    /* pages */
+    . += 0x1000;
+
+    /* Pages */
     . = ALIGN(4096);
     PROVIDE(pages_bottom = .);
 
-    /* end of uninitalized data segement */
+    /* End of uninitalized data segement */
 }

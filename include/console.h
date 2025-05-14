@@ -12,4 +12,6 @@ void kputs(char *s);
 __attribute__ ((format(printf, 1, 2)))
 int kprintf(const char *fmt, ...);
 
+void khexdump(void* data, size_t size);
+
 #endif /* CONSOLE_H */

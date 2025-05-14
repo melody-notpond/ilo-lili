@@ -1,9 +1,27 @@
 #include "console.h"
+#include "drivers/devicetree.h"
 
 void kinit(unsigned long long hartid, void *fdt) {
     (void) hartid;
-    (void) fdt;
 
-    kprintf("haiiii :3\n%s %x", "amogus", 0x1234abcd);
+    devicetree tree = fdt_validate(fdt);
+    if (!tree) {
+        kprintf("invalid device tree!\n");
+        while(1);
+    }
+
+    // TODO: add a fault handler
+
+    kprintf("%p is a valid device tree\n", tree);
+    kprintf("%p has %x entries in the memory reservation block\n", tree, fdt_count_mem_reserve_entries(tree));
+    khexdump(fdt, 32);
+
+    // test node iteration
+    // TODO: this faults (i think)
+    for (fdt_node node = fdt_root_node(tree); fdt_node_valid(node);
+        node = fdt_node_iter(node)) {
+        kprintf("theres a device tree node called '%s'\n", fdt_node_name(node));
+    }
+
     while(1);
 }

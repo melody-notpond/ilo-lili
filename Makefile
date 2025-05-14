@@ -1,9 +1,10 @@
 TARGET = riscv64-unknown-elf
 CC     = clang
-CFLAGS = -march=rv64gc -mabi=lp64d -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -g -Wall -Wextra -Tkernel.ld -Iinclude/
+CFLAGS = -march=rv64gc -mabi=lp64d -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -Wall -Wextra -Tkernel.ld -Iinclude/
 ifeq ($(CC),clang)
-	CFLAGS += -target $(TARGET) -mno-relax -Wno-unused-command-line-argument -Wthread-safety
+	CFLAGS += -target $(TARGET) -mno-relax -Wno-unused-command-line-argument -Wthread-safety -gdwarf-4
 endif
+CFLAGS += -g -O0
 CODE   = src/
 
 GDB    = riscv64-elf-gdb
@@ -25,7 +26,7 @@ endif
 
 .PHONY: all clean run gdb
 
-all: $(CODE)boot/boot.s $(CODE)*.s $(CODE)*.c
+all: $(CODE)boot/boot.s $(CODE)*.c $(CODE)drivers/*.c $(CODE)drivers/*.s
 	$(CC) $(CFLAGS) $? -o kernel
 
 run:
