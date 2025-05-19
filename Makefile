@@ -26,10 +26,10 @@ endif
 
 .PHONY: all clean run gdb
 
-all: $(CODE)boot/boot.s $(CODE)*.c $(CODE)drivers/*.c $(CODE)drivers/*.s
+all: $(CODE)asm/*.s $(CODE)*.c $(CODE)drivers/*.c
 	$(CC) $(CFLAGS) $? -o kernel
 
-run:
+run: all
 	$(EMU) $(EFLAGS) -kernel kernel
 
 gdb:

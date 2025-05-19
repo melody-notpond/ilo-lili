@@ -24,15 +24,15 @@
     ((n) & 0xff0000) >> 8 | ((n) & 0xff000000) >> 24)
 
 #define align2(t, p) \
-    (t *) (((intptr_t) (p) + 1) & ~2)
+    ((t *) (((intptr_t) (p) + 1) & ~1))
 
 #define align4(t, p) \
-    (t *) (((intptr_t) (p) + 3) & ~4)
+    ((t *) (((intptr_t) (p) + 3) & ~3))
 
 #define align8(t, p) \
-    (t *) (((intptr_t) (p) + 7) & ~8)
+    ((t *) (((intptr_t) (p) + 7) & ~7))
 
 #define align16(t, p) \
-    (t *) (((intptr_t) (p) + 15) & ~16)
+    ((t *) (((intptr_t) (p) + 15) & ~15))
 
 #endif /* INTS_H */
