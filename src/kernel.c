@@ -18,17 +18,21 @@ void kinit(unsigned long long hartid, void *fdt) {
   }
 
   kprintf("%p is a valid device tree\n", tree);
-  kprintf("%p has %x entries in the memory reservation block\n", tree, fdt_count_mem_reserve_entries(tree));
-  khexdump(fdt, 32);
 
   // test node iteration
   for ( fdt_node node = fdt_root_node(tree)
       ; fdt_node_valid(node)
       ; node = fdt_node_iter(node) ) {
     kprintf("theres a device tree node called '%s'\n", fdt_node_name(node));
+
+    for ( fdt_node child = fdt_node_child_iter(node, NULL)
+        ; fdt_node_valid(child)
+        ; child =fdt_node_child_iter(node, child)) {
+      kprintf("  which has child called '%s'\n", fdt_node_name(child));
+    }
   }
 
-  kprintf("done iterating over device tree nodes");
+  kprintf("done iterating over device tree nodes\n");
 
   while(1);
 }

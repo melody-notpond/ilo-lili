@@ -2,8 +2,8 @@
 #include "console.h"
 #include "ints.h"
 
-#define FDT_MAGIC 0xd00dfeed
-#define FDT_VERSION 17
+#define FDT_MAGIC nv2be32(0xd00dfeed)
+#define FDT_VERSION nv2be32(17)
 
 // device tree spec:
 // https://readthedocs.org/projects/devicetree-specification/downloads/pdf/latest/
@@ -42,7 +42,8 @@ struct fdt_prop {
 #define FDT_END          nv2be32(0x00000009)
 
 // assumption: an fdt_node points to FDT_BEGIN_NODE
-// assumption: an fdt_node node is valid iff node != NULL
+// assumption: an fdt_node node is valid iff node != NULL and
+//             *node == FDT_BEGIN_NODE
 struct fdt_node { };
 
 // validates a device tree. on failure, returns NULL. otherwise, returns a valid
@@ -50,11 +51,10 @@ struct fdt_node { };
 devicetree fdt_validate(void *p) {
   struct fdt_header *header = p;
 
-  if (be2nv32(header->magic) != FDT_MAGIC)
+  if (header->magic != FDT_MAGIC)
       return NULL;
-  if (be2nv32(header->version) != FDT_VERSION)
+  if (header->version != FDT_VERSION)
       return NULL;
-
   return header;
 }
 
@@ -96,6 +96,21 @@ char *fdt_node_name(fdt_node node) {
   return (char *) node + 4;
 }
 
+// helper function that skips the name of a node. assumes *p == FDT_BEGIN_NODE.
+uint32_t *fdt_skip_name(fdt_node node) {
+  char *c = (char *) node + 4;
+  for (; *c; c++);
+  return align4(uint32_t, c + 1);
+}
+
+// helper function that skips a property of a node. assumes *p == FDT_PROP.
+uint32_t *fdt_skip_property(uint32_t *p) {
+  p++;
+  p = (void *) p + sizeof(struct fdt_prop) +
+      be2nv32(((struct fdt_prop *) p)->len);
+  return align4(uint32_t, p);
+}
+
 // iterates over nodes depth first in order of definition. returns an invalid
 // node when there are no more nodes or when an invalid node exists. example
 // usage:
@@ -109,14 +124,8 @@ fdt_node fdt_node_iter(fdt_node node) {
   if (!fdt_node_valid(node))
      return node;
 
-  // skip name of node (including null terminator)
-  char *c = (char *) node + 4;
-  for (; *c; c++);
-
-  // align to 4 bytes
-  uint32_t *p = align4(uint32_t, c + 1);
-
   // skip nonnodes
+  uint32_t *p = fdt_skip_name(node);
   while (*p != FDT_BEGIN_NODE) {
     switch (*p) {
       case FDT_END_NODE:
@@ -125,31 +134,120 @@ fdt_node fdt_node_iter(fdt_node node) {
         break;
 
       case FDT_PROP:
-        // we have to skip the property (and its alignment)
-        p++;
-        p = (void *) p + sizeof(struct fdt_prop) +
-            be2nv32(((struct fdt_prop *) p)->len);
-        p = align4(uint32_t, p);
+        p = fdt_skip_property(p);
         break;
 
-      // the end of the structure block means no more nodes
       case FDT_END:
         return NULL;
 
-      // also other int value means invalid structure block
       default:
         kprintf("invalid token %x\n", be2nv32(*p));
         return NULL;
     }
   }
 
-  // at this point we found a valid node
   return (fdt_node) p;
 }
 
+// helper function that skips a node while iterating. assumes
+// *p == FDT_BEGIN_NODE.
+uint32_t *fdt_skip_node(uint32_t *p) {
+  int deep = 1;
+  p = fdt_skip_name((fdt_node) p);
+  while (deep > 0) {
+    switch (*p) {
+      case FDT_BEGIN_NODE:
+        p = fdt_skip_name((fdt_node) p);
+        deep++;
+        break;
+
+      case FDT_END_NODE:
+        deep--;
+      case FDT_NOP:
+        p++;
+        break;
+
+      case FDT_PROP:
+        p = fdt_skip_property(p);
+        break;
+
+      default:
+        return p;
+    }
+  }
+
+  return p;
+}
+
+// iterates over the child nodes of a parent in order of definition. returns an
+// invalid node when there are no more nodes or when an invalid node exists.
+// passing in NULL to the child parameter yields the first child, whereas
+// passing in a child node passes in the next child.
+// example usage:
+// 
+//   
+//   for ( fdt_node child = fdt_node_child_iter(parent, NULL)
+//       ; fdt_node_valid(child)
+//       ; child = fdt_node_child_iter(parent, child)) {
+//     ... do stuff with node
+//   }
+fdt_node fdt_node_child_iter(fdt_node parent, fdt_node child) {
+  if (!fdt_node_valid(parent))
+     return parent;
+
+   // find the first child since we dont have a valid child already
+   if (!fdt_node_valid(child)) {
+      uint32_t *p = fdt_skip_name(parent);
+      while (*p != FDT_BEGIN_NODE) {
+        switch (*p) {
+          // if the node ended then parent has no children
+          case FDT_END_NODE:
+          case FDT_END:
+            return NULL;
+
+          case FDT_NOP:
+            p++;
+            break;
+
+          case FDT_PROP:
+            p = fdt_skip_property(p);
+            break;
+
+          default:
+            kprintf("invalid token %x\n", be2nv32(*p));
+            return NULL;
+        }
+      }
+
+      return (fdt_node) p;
+   }
+
+   // instead we have to find the child from the given child
+    uint32_t *p = fdt_skip_node((uint32_t *) child);
+    while (*p != FDT_BEGIN_NODE) {
+      switch (*p) {
+        case FDT_END_NODE:
+        case FDT_END:
+          return NULL;
+
+        case FDT_NOP:
+          p++;
+          break;
+
+        case FDT_PROP:
+          p = fdt_skip_property(p);
+          break;
+
+        default:
+          kprintf("invalid token %x\n", be2nv32(*p));
+          return NULL;
+      }
+    }
+
+    return (fdt_node) p;
+ }
+
 // things we want in our api:
-// - iterate through all nodes
-// - iterate through child nodes
 // - iterate through all properties of a node
 // - get the value of a specific node property
 // - get a node by path
