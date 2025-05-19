@@ -189,43 +189,18 @@ uint32_t *fdt_skip_node(uint32_t *p) {
 //   for ( fdt_node child = fdt_node_child_iter(parent, NULL)
 //       ; fdt_node_valid(child)
 //       ; child = fdt_node_child_iter(parent, child)) {
-//     ... do stuff with node
+//     ... do stuff with child
 //   }
 fdt_node fdt_node_child_iter(fdt_node parent, fdt_node child) {
   if (!fdt_node_valid(parent))
      return parent;
 
-   // find the first child since we dont have a valid child already
-   if (!fdt_node_valid(child)) {
-      uint32_t *p = fdt_skip_name(parent);
-      while (*p != FDT_BEGIN_NODE) {
-        switch (*p) {
-          // if the node ended then parent has no children
-          case FDT_END_NODE:
-          case FDT_END:
-            return NULL;
-
-          case FDT_NOP:
-            p++;
-            break;
-
-          case FDT_PROP:
-            p = fdt_skip_property(p);
-            break;
-
-          default:
-            kprintf("invalid token %x\n", be2nv32(*p));
-            return NULL;
-        }
-      }
-
-      return (fdt_node) p;
-   }
-
-   // instead we have to find the child from the given child
-    uint32_t *p = fdt_skip_node((uint32_t *) child);
+  // find the first child since we dont have a valid child already
+  if (!fdt_node_valid(child)) {
+    uint32_t *p = fdt_skip_name(parent);
     while (*p != FDT_BEGIN_NODE) {
       switch (*p) {
+        // if the node ended then parent has no children
         case FDT_END_NODE:
         case FDT_END:
           return NULL;
@@ -245,11 +220,116 @@ fdt_node fdt_node_child_iter(fdt_node parent, fdt_node child) {
     }
 
     return (fdt_node) p;
- }
+  }
+ 
+  // instead we have to find the child from the given child
+  uint32_t *p = fdt_skip_node((uint32_t *) child);
+  while (*p != FDT_BEGIN_NODE) {
+    switch (*p) {
+    case FDT_END_NODE:
+    case FDT_END:
+      return NULL;
+
+    case FDT_NOP:
+      p++;
+      break;
+
+    case FDT_PROP:
+      p = fdt_skip_property(p);
+      break;
+
+    default:
+      kprintf("invalid token %x\n", be2nv32(*p));
+      return NULL;
+    }
+  }
+
+  return (fdt_node) p;
+}
+
+// checks if an fdt_prop handle is valid, returns true iff valid.
+bool fdt_prop_valid(fdt_prop prop) {
+  return prop != NULL && *((uint32_t *) prop - 1) == FDT_PROP;
+}
+
+
+// gets the name of an fdt prop. tree must be the device tree from which prop
+// was obtained.
+char *fdt_prop_name(devicetree tree, fdt_prop prop) {
+  return (char *) tree + be2nv32(tree->off_dt_strings) + be2nv32(prop->nameoff);
+}
+
+// iterates over the properties of a node in order of definition. returns an
+// invalid property when there are no more nodes or when an invalid token
+// exists. passing in NULL to the prop parameter yields the first property,
+// whereas passing in a valid property passes in the next child.
+// example usage:
+// 
+//   
+//   for ( fdt_prop prop = fdt_prop_iter(node, NULL)
+//       ; fdt_prop_valid(prop)
+//       ; prop = fdt_prop_iter(node, prop)) {
+//     ... do stuff with prop
+//   }
+fdt_prop fdt_prop_iter(fdt_node node, fdt_prop prop) {
+  if (!fdt_node_valid(node))
+     return NULL;
+
+  // find the first property since we dont have a valid property already
+  if (!fdt_prop_valid(prop)) {
+    uint32_t *p = fdt_skip_name(node);
+    while (*p != FDT_PROP) {
+      switch (*p) {
+        case FDT_BEGIN_NODE:
+          p = fdt_skip_node(p);
+          break;
+
+        // if the node ended then parent has no properties
+        case FDT_END_NODE:
+        case FDT_END:
+          return NULL;
+
+        case FDT_NOP:
+          p++;
+          break;
+
+        default:
+          kprintf("invalid token %x\n", be2nv32(*p));
+          return NULL;
+      }
+    }
+
+    return (fdt_prop) (p + 1);
+  }
+ 
+  // instead we have to find the child from the given child
+  uint32_t *p = fdt_skip_property((uint32_t *) prop - 1);
+  while (*p != FDT_PROP) {
+    switch (*p) {
+      case FDT_BEGIN_NODE:
+        p = fdt_skip_node(p);
+        break;
+
+    case FDT_END_NODE:
+    case FDT_END:
+      return NULL;
+
+    case FDT_NOP:
+      p++;
+      break;
+
+    default:
+      kprintf("invalid token %x\n", be2nv32(*p));
+      return NULL;
+    }
+  }
+
+  return (fdt_prop) (p + 1);
+}
 
 // things we want in our api:
-// - iterate through all properties of a node
 // - get the value of a specific node property
 // - get a node by path
 // - search for a node
+// - search by phandle for a node
 // - dump device tree to serial port for debugging

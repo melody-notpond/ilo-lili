@@ -25,10 +25,10 @@ void kinit(unsigned long long hartid, void *fdt) {
       ; node = fdt_node_iter(node) ) {
     kprintf("theres a device tree node called '%s'\n", fdt_node_name(node));
 
-    for ( fdt_node child = fdt_node_child_iter(node, NULL)
-        ; fdt_node_valid(child)
-        ; child =fdt_node_child_iter(node, child)) {
-      kprintf("  which has child called '%s'\n", fdt_node_name(child));
+    for ( fdt_prop prop = fdt_prop_iter(node, NULL)
+        ; fdt_prop_valid(prop)
+        ; prop = fdt_prop_iter(node, prop)) {
+      kprintf("  which has property called '%s'\n", fdt_prop_name(tree, prop));
     }
   }
 

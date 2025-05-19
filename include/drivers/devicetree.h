@@ -16,7 +16,9 @@ struct fdt_reserved {
 typedef const struct fdt_header *const devicetree;
 
 // a devicetree node handle. do not modify values of this type.
-typedef const struct fdt_node * fdt_node;
+typedef const struct fdt_node *fdt_node;
+
+typedef const struct fdt_prop *fdt_prop;
 
 // validates a device tree. on failure, returns NULL. otherwise, returns a valid
 // devicetree value.
@@ -56,8 +58,29 @@ fdt_node fdt_node_iter(fdt_node node);
 //   for ( fdt_node child = fdt_node_child_iter(parent, NULL)
 //       ; fdt_node_valid(child)
 //       ; child = fdt_node_child_iter(parent, child)) {
-//     ... do stuff with node
+//     ... do stuff with child
 //   }
 fdt_node fdt_node_child_iter(fdt_node parent, fdt_node child);
+
+// checks if an fdt_prop handle is valid, returns true iff valid.
+bool fdt_prop_valid(fdt_prop prop);
+
+// gets the name of an fdt prop. tree must be the device tree from which prop
+// was obtained.
+char *fdt_prop_name(devicetree tree, fdt_prop prop);
+
+// iterates over the properties of a node in order of definition. returns an
+// invalid property when there are no more nodes or when an invalid token
+// exists. passing in NULL to the prop parameter yields the first property,
+// whereas passing in a valid property passes in the next child.
+// example usage:
+// 
+//   
+//   for ( fdt_prop prop = fdt_prop_iter(node, NULL)
+//       ; fdt_prop_valid(prop)
+//       ; prop = fdt_prop_iter(node, prop)) {
+//     ... do stuff with prop
+//   }
+fdt_prop fdt_prop_iter(fdt_node node, fdt_prop prop);
 
 #endif /* DEVICETREE_H */
