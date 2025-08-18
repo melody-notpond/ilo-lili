@@ -32,7 +32,20 @@ void kinit(unsigned long long hartid, void *fdt) {
     }
   }
 
-  kprintf("done iterating over device tree nodes\n");
+  kprintf("done iterating over device tree nodes\n\n\n");
+
+  char *path = "/cpus/cpu@0";
+  fdt_node node = fdt_node_path(tree, path);
+  if (node) {
+    kprintf("%s exists and is called %s!\n", path, fdt_node_name(node));
+    for ( fdt_node child = fdt_node_child_iter(node, NULL)
+        ; fdt_node_valid(child)
+        ; child = fdt_node_child_iter(node, child)) {
+      kprintf("%s has child called '%s'\n", path, fdt_node_name(child));
+    }
+  } else {
+    kprintf("%s does not exist\n", path);
+  }
 
   while(1);
 }

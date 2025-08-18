@@ -114,7 +114,7 @@ uint32_t *fdt_skip_property(uint32_t *p) {
 // iterates over nodes depth first in order of definition. returns an invalid
 // node when there are no more nodes or when an invalid node exists. example
 // usage:
-// 
+//
 //   for ( fdt_node node = fdt_root_node(tree)
 //       ; fdt_node_valid(node)
 //       ; node = fdt_node_iter(node)) {
@@ -182,10 +182,8 @@ uint32_t *fdt_skip_node(uint32_t *p) {
 // iterates over the child nodes of a parent in order of definition. returns an
 // invalid node when there are no more nodes or when an invalid node exists.
 // passing in NULL to the child parameter yields the first child, whereas
-// passing in a child node passes in the next child.
-// example usage:
-// 
-//   
+// passing in a child node passes in the next child. example usage:
+//
 //   for ( fdt_node child = fdt_node_child_iter(parent, NULL)
 //       ; fdt_node_valid(child)
 //       ; child = fdt_node_child_iter(parent, child)) {
@@ -252,7 +250,6 @@ bool fdt_prop_valid(fdt_prop prop) {
   return prop != NULL && *((uint32_t *) prop - 1) == FDT_PROP;
 }
 
-
 // gets the name of an fdt prop. tree must be the device tree from which prop
 // was obtained.
 char *fdt_prop_name(devicetree tree, fdt_prop prop) {
@@ -262,10 +259,8 @@ char *fdt_prop_name(devicetree tree, fdt_prop prop) {
 // iterates over the properties of a node in order of definition. returns an
 // invalid property when there are no more nodes or when an invalid token
 // exists. passing in NULL to the prop parameter yields the first property,
-// whereas passing in a valid property passes in the next child.
-// example usage:
-// 
-//   
+// whereas passing in a valid property passes in the next child. example usage:
+//
 //   for ( fdt_prop prop = fdt_prop_iter(node, NULL)
 //       ; fdt_prop_valid(prop)
 //       ; prop = fdt_prop_iter(node, prop)) {
@@ -327,9 +322,135 @@ fdt_prop fdt_prop_iter(fdt_node node, fdt_prop prop) {
   return (fdt_prop) (p + 1);
 }
 
+// valid node names match the following regex:
+// /[a-zA-Z][a-zA-Z0-9,._+\-]{,31}(@[0-9a-fA-F]+)?/
+// 
+// the part before the @ is the actual name and the part after is the unit
+// address. returns the length of the name within the path (+ 1 for the slash)
+// and 0 if invalid.
+int fdt_name_iter(char *path) {
+  // cant be empty
+  if (!path || !*path)
+    return 0;
+
+  // first character must match /[a-zA-Z]/
+  if (!('a' <= path[0] && path[0] <= 'z') &&
+      !('A' <= path[0] && path[0] <= 'Z'))
+    return 0;
+
+  // validate the name part
+#define MAX_NAME_LENGTH 31
+  int length;
+  for ( length = 1
+      ; length < MAX_NAME_LENGTH && path[length] && path[length] != '/' &&
+        path[length] != '@'
+      ; length++) {
+    if (!('a' <= path[length] && path[length] <= 'z') &&
+        !('A' <= path[length] && path[length] <= 'Z') &&
+        !('0' <= path[length] && path[length] <= '9') &&
+        path[length] != '.' && path[length] != ',' &&
+        path[length] != '_' && path[length] != '+' &&
+        path[length] != '-')
+      return 0;
+  }
+
+  // no address, at end of name
+  if (!path[length] || path[length] == '/')
+    return length + (path[length] == '/');
+
+  // we should be validating the address now
+  if (path[length++] != '@')
+    return 0;
+  for (; path[length] && path[length] != '/'; length++) {
+    if (!('a' <= path[length] && path[length] <= 'f') &&
+        !('A' <= path[length] && path[length] <= 'F') &&
+        !('0' <= path[length] && path[length] <= '9'))
+      return 0;
+  }
+
+#undef MAX_NAME_LENGTH
+  return length + (path[length] == '/');
+}
+
+// valid path names consist of valid node names separated by forward slashes.
+bool fdt_validate_path(char *path) {
+  // cant be empty, has to start with '/'
+  if (!path || !*path)
+    return false;
+  if (path[0] != '/')
+    return false;
+  path++;
+
+  // root path valid
+  if (!*path)
+    return true;
+
+  // check for valid names separated by slashes by iterating through each path
+  // component
+  for ( int length = fdt_name_iter(path)
+      ; *path && length
+      ; path += length
+      , length = fdt_name_iter(path) );
+
+  // valid iff we have reached the null terminator
+  return !*path;
+}
+
+// return true iff the two names passed in are equal.
+bool fdt_name_equal(char *n, char *m) {
+  while ( !(!*n || *n == '/' || *n == '@') &&
+          !(!*m || *m == '/' || *m == '@') ) {
+    if (*n++ != *m++)
+      return false;
+  }
+
+  // if both names have addresses then check the addresses of both
+  if (*n == '@' && *m == '@') {
+    ++n; ++m;
+    while ( !(!*n || *n == '/') &&
+            !(!*m || *m == '/') ) {
+      if (*n++ != *m++)
+        return false;
+    }
+  }
+
+  // both names must have terminated (the right one must have its address
+  // considered since its the path)
+  return (!*n || *n == '/' || *n == '@') && (!*m || *m == '/');
+}
+
+// searches for a node by its path. returns an invalid node if cannot be found.
+fdt_node fdt_node_path(devicetree tree, char *path) {
+  // validation and get root node
+  if (!fdt_validate_path(path++))
+    return NULL;
+  fdt_node node = fdt_root_node(tree);
+  if (!node)
+    return NULL;
+  if (!*path)
+    return node;
+
+  // search layer by layer
+  for ( fdt_node child = fdt_node_child_iter(node, NULL)
+      ; fdt_node_valid(child) && *path
+      ; child = fdt_node_child_iter(node, child) ) {
+    if (!fdt_name_equal(fdt_node_name(child), path))
+      continue;
+
+    // pop a name from the path; path empty means we found the node we wanted
+    path += fdt_name_iter(path);
+    if (!*path)
+      return child;
+
+    node = child;
+    child = NULL;
+  }
+
+  return NULL;
+}
+
 // things we want in our api:
 // - get the value of a specific node property
-// - get a node by path
 // - search for a node
 // - search by phandle for a node
 // - dump device tree to serial port for debugging
