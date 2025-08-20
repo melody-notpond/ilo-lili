@@ -1,6 +1,7 @@
 #include "drivers/devicetree.h"
 #include "console.h"
 #include "ints.h"
+#include "string.h"
 
 #define FDT_MAGIC nv2be32(0xd00dfeed)
 #define FDT_VERSION nv2be32(17)
@@ -60,6 +61,8 @@ devicetree fdt_validate(void *p) {
 
 // returns the number of memory reservation entries the device tree has.
 int fdt_count_mem_reserve_entries(devicetree tree) {
+  if (!tree)
+    return 0;
   struct fdt_reserve_entry *entries =
     (struct fdt_reserve_entry *) (((void *) tree) +
     be2nv32(tree->off_mem_rsvmap));
@@ -71,6 +74,8 @@ int fdt_count_mem_reserve_entries(devicetree tree) {
 // returns a reference to the root node. this must be valid if the device tree
 // is correct.
 fdt_node fdt_root_node(devicetree tree) {
+  if (!tree)
+    return NULL;
   uint32_t *p = (void *) tree + be2nv32(tree->off_dt_struct);
 
   // skip nops
@@ -253,6 +258,8 @@ bool fdt_prop_valid(fdt_prop prop) {
 // gets the name of an fdt prop. tree must be the device tree from which prop
 // was obtained.
 char *fdt_prop_name(devicetree tree, fdt_prop prop) {
+  if (!tree || !fdt_prop_valid(prop))
+    return NULL;
   return (char *) tree + be2nv32(tree->off_dt_strings) + be2nv32(prop->nameoff);
 }
 
@@ -422,10 +429,12 @@ bool fdt_name_equal(char *n, char *m) {
 // searches for a node by its path. returns an invalid node if cannot be found.
 fdt_node fdt_node_path(devicetree tree, char *path) {
   // validation and get root node
+  if (!tree)
+    return NULL;
   if (!fdt_validate_path(path++))
     return NULL;
   fdt_node node = fdt_root_node(tree);
-  if (!node)
+  if (!fdt_node_valid(node))
     return NULL;
   if (!*path)
     return node;
@@ -449,8 +458,72 @@ fdt_node fdt_node_path(devicetree tree, char *path) {
   return NULL;
 }
 
-// things we want in our api:
-// - get the value of a specific node property
+// gets the property with the given name from the given node. returns an
+// invalid property if cant be found.
+fdt_prop fdt_node_prop(devicetree tree, fdt_node node, char *name) {
+  if (!tree)
+    return NULL;
+  if (!fdt_node_valid(node))
+    return NULL;
+
+  for ( fdt_prop prop = fdt_prop_iter(node, NULL)
+      ; fdt_prop_valid(prop)
+      ; prop = fdt_prop_iter(node, prop) ) {
+    if (streq(name, fdt_prop_name(tree, prop)))
+      return prop;
+  }
+
+  return NULL;
+}
+
+// helper function for fdt_dump that does the actual recursive print.
+void fdt_dump_helper(devicetree tree, fdt_node node, int indent) {
+  // check if valid node
+  if (!fdt_node_valid(node))
+    node = fdt_root_node(tree);
+  if (!fdt_node_valid(node))
+    return;
+
+  // name of node, start of block
+  #define INDENT(indent) for (int i = 0; i < indent; i++) kprintf("  ")
+  INDENT(indent);
+  kprintf("%s/ {\n", fdt_node_name(node));
+
+  // print children
+  fdt_node child = fdt_node_child_iter(node, NULL);
+  bool has_children = false;
+  for (; fdt_node_valid(child) ; child = fdt_node_child_iter(node, child)) {
+    if (has_children)
+      kprintf("\n");
+    has_children = true;
+    fdt_dump_helper(tree, child, indent + 1);
+  }
+
+  // add a newline between children and properties if both exist
+  fdt_prop prop = fdt_prop_iter(node, NULL);
+  if (has_children && prop)
+    kprintf("\n");
+
+  // print properties
+  for (; fdt_prop_valid(prop) ; prop = fdt_prop_iter(node, prop)) {
+    INDENT(indent + 1);
+    kprintf("%s = <TODO>\n", fdt_prop_name(tree, prop));
+  }
+
+  // yay we are done! close the block
+  INDENT(indent);
+  kprintf("}\n");
+  #undef INDENT
+}
+
+// dumps the given device tree to the uart console.
+void fdt_dump(devicetree tree) {
+  if (!tree)
+    return;
+  fdt_dump_helper(tree, NULL, 0);
+}
+
+// TODO: things we want in our api:
+// - get the value of a node property
 // - search for a node
 // - search by phandle for a node
-// - dump device tree to serial port for debugging

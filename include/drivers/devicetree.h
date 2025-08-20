@@ -8,7 +8,7 @@
 // a devicetree memory reserve entry. memory writes from `address` to
 // `address+size` are invalid and may not occur.
 struct fdt_reserved {
-    void* address;
+    void *address;
     size_t size;
 };
 
@@ -81,5 +81,12 @@ fdt_prop fdt_prop_iter(fdt_node node, fdt_prop prop);
 
 // searches for a node by its path. returns an invalid node if cannot be found.
 fdt_node fdt_node_path(devicetree tree, char *path);
+
+// gets the property with the given name from the given node. returns an
+// invalid property if cant be found.
+fdt_prop fdt_node_prop(devicetree tree, fdt_node node, char *name);
+
+// dumps the given device tree to the uart console.
+void fdt_dump(devicetree tree);
 
 #endif /* DEVICETREE_H */
