@@ -79,8 +79,25 @@ char *fdt_prop_name(devicetree tree, fdt_prop prop);
 //   }
 fdt_prop fdt_prop_iter(fdt_node node, fdt_prop prop);
 
-// searches for a node by its path. returns an invalid node if cannot be found.
-fdt_node fdt_node_path(devicetree tree, char *path);
+// searches for a node by its path, starting from the passed in root node. if
+// no root is provided then the device tree root node is used. returns an
+// invalid node if cannot be found.
+fdt_node fdt_node_path(devicetree tree, fdt_node root, char *path);
+
+// iterates over the nodes with a given name in order of definition. returns an
+// invalid node when there are no more nodes or when an invalid node exists.
+// passing in NULL to the nodeparameter yields the first node, whereas
+// passing in a node node passes in the next node. example usage:
+//
+//   for ( fdt_node node = fdt_node_search_iter(tree, NULL, "virtio_mmio")
+//       ; fdt_node_valid(node)
+//       ; node = fdt_node_search_iter(parent, node)) {
+//     ... do stuff with child
+//   }
+//
+// in the above example, if virtio_mmio@10001000 and virtio_mmio@10002000 both
+// exist in the device tree, then both of those will be yielded by the iterator.
+fdt_node fdt_node_search_iter(devicetree tree, fdt_node node, char *name);
 
 // gets the property with the given name from the given node. returns an
 // invalid property if cant be found.

@@ -21,21 +21,14 @@ void kinit(unsigned long long hartid, void *fdt) {
 
   fdt_dump(tree);
 
-  char *path = "/chosen";
-  char *prop_name = "stdout-path";
-  fdt_node node = fdt_node_path(tree, path);
-  if (fdt_node_valid(node)) {
-    kprintf("%s exists and is called %s!\n", path, fdt_node_name(node));
-    fdt_prop prop = fdt_node_prop(tree, node, prop_name);
-
-    if (fdt_prop_valid(prop)) {
-      kprintf ("%s exists in %s!\n", prop_name, path);
-    } else {
-      kprintf ("%s does not exist in %s\n", prop_name, path);
-    }
-  } else {
-    kprintf("%s does not exist\n", path);
+  char *name = "virtio_mmio";
+  for ( fdt_node node = fdt_node_search_iter(tree, NULL, name)
+      ; fdt_node_valid(node)
+      ; node = fdt_node_search_iter(tree, node, name) ) {
+    kprintf("we have a %s node called %s\n", name, fdt_node_name(node));
   }
+
+  kprintf("done\n");
 
   while(1);
 }

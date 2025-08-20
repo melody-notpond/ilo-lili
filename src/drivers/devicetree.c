@@ -426,23 +426,26 @@ bool fdt_name_equal(char *n, char *m) {
   return (!*n || *n == '/' || *n == '@') && (!*m || *m == '/');
 }
 
-// searches for a node by its path. returns an invalid node if cannot be found.
-fdt_node fdt_node_path(devicetree tree, char *path) {
+// searches for a node by its path, starting from the passed in root node. if
+// no root is provided then the device tree root node is used. returns an
+// invalid node if cannot be found.
+fdt_node fdt_node_path(devicetree tree, fdt_node root, char *path) {
   // validation and get root node
   if (!tree)
     return NULL;
   if (!fdt_validate_path(path++))
     return NULL;
-  fdt_node node = fdt_root_node(tree);
-  if (!fdt_node_valid(node))
+  if (!fdt_node_valid(root))
+    root = fdt_root_node(tree);
+  if (!fdt_node_valid(root))
     return NULL;
   if (!*path)
-    return node;
+    return root;
 
   // search layer by layer
-  for ( fdt_node child = fdt_node_child_iter(node, NULL)
+  for ( fdt_node child = fdt_node_child_iter(root, NULL)
       ; fdt_node_valid(child) && *path
-      ; child = fdt_node_child_iter(node, child) ) {
+      ; child = fdt_node_child_iter(root, child) ) {
     if (!fdt_name_equal(fdt_node_name(child), path))
       continue;
 
@@ -451,8 +454,39 @@ fdt_node fdt_node_path(devicetree tree, char *path) {
     if (!*path)
       return child;
 
-    node = child;
+    root = child;
     child = NULL;
+  }
+
+  return NULL;
+}
+
+// iterates over the nodes with a given name in order of definition. returns an
+// invalid node when there are no more nodes or when an invalid node exists.
+// passing in NULL to the nodeparameter yields the first node, whereas
+// passing in a node node passes in the next node. example usage:
+//
+//   for ( fdt_node node = fdt_node_search_iter(tree, NULL, "virtio_mmio")
+//       ; fdt_node_valid(node)
+//       ; node = fdt_node_search_iter(parent, node)) {
+//     ... do stuff with child
+//   }
+//
+// in the above example, if virtio_mmio@10001000 and virtio_mmio@10002000 both
+// exist in the device tree, then both of those will be yielded by the iterator.
+fdt_node fdt_node_search_iter(devicetree tree, fdt_node node, char *name) {
+  // validation and get root node (assum e we arent searching for the root node)
+  if (!tree)
+    return NULL;
+  if (!fdt_node_valid(node))
+    node = fdt_root_node(tree);
+
+  // we can use the preexisting node iteration functions
+  for ( node = fdt_node_iter(node)
+      ; fdt_node_valid(node)
+      ; node = fdt_node_iter(node) ) {
+    if (fdt_name_equal(fdt_node_name(node), name))
+      return node;
   }
 
   return NULL;
