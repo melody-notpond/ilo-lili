@@ -37,7 +37,7 @@ int kvprintf(const char* format, va_list va) {
                     break;
 
                 case 'p': {
-                    intptr_t p = (intptr_t) va_arg(va, void*);
+                    uintptr_t p = (intptr_t) va_arg(va, void*);
                     if (p == 0) {
                         kputs("(null)");
                         break;
@@ -49,8 +49,8 @@ int kvprintf(const char* format, va_list va) {
                     size_t len = 0;
                     while (p != 0) {
                         len++;
-                        buffer[buffer_size - len] = "0123456789abcdef"[p % 16];
-                        p /= 16;
+                        buffer[buffer_size - len] = "0123456789abcdef"[p & 0xf];
+                        p >>= 4;
                     }
 
                     for (size_t i = buffer_size - len; i < buffer_size; i++) {
@@ -81,7 +81,7 @@ int kvprintf(const char* format, va_list va) {
 
                 case 'x':
 _kvprintf_fallthrough: {
-                    int64_t x;
+                    uint64_t x;
                     x = va_arg(va, int64_t);
 
                     if (x == 0) {
@@ -94,8 +94,8 @@ _kvprintf_fallthrough: {
                     size_t len = 0;
                     while (x != 0) {
                         len++;
-                        buffer[buffer_size - len] = "0123456789abcdef"[x % 16];
-                        x /= 16;
+                        buffer[buffer_size - len] = "0123456789abcdef"[x & 0xf];
+                        x >>= 4;
                     }
 
                     for (size_t i = buffer_size - len; i < buffer_size; i++) {
@@ -139,6 +139,16 @@ int _log16(size_t n) {
         i++;
     }
     return i;
+}
+
+// print a string, replacing nonprintable characters with a period.
+void kputx(void *data, size_t size) {
+    char *s = (char *) data;
+    for (size_t i = 0; i < size; i++) {
+        if (32 <= s[i] && s[i] <= 127)
+            kputc(s[i]);
+        else kputc('.');
+    }
 }
 
 void khexdump(void* data, size_t size) {

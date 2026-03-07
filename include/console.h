@@ -12,6 +12,9 @@ void kputs(char *s);
 __attribute__ ((format(printf, 1, 2)))
 int kprintf(const char *fmt, ...);
 
+// print a string, replacing nonprintable characters with a period.
+void kputx(void *data, size_t size);
+
 void khexdump(void* data, size_t size);
 
 #endif /* CONSOLE_H */

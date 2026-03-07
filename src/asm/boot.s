@@ -24,7 +24,7 @@ _start:
   csrw sscratch, t0
 
   # init csrs to enable interrupts in supervisor mode
-  li t0, 0x022        # ssie (software interrupt enable) = 1, nothing else
+  li t0, 0x002        # ssie (software interrupt enable) = 1, nothing else
   csrw sie, t0
   li t0, 0x22         # sie (supervisor interrupt enable) = 1
   csrs sstatus, t0

@@ -510,6 +510,19 @@ fdt_prop fdt_node_prop(devicetree tree, fdt_node node, char *name) {
   return NULL;
 }
 
+// helper function to determine whether to print as a string list or ints.
+bool fdt_prolly_string(void *p, size_t len) {
+  char *s = (char *) p;
+  bool all_zeroes = true;
+  for (size_t i = 0; i < len; i++) {
+    all_zeroes &= s[i] == 0;
+    if (s[i] != 0 && !(32 <= s[i] && s[i] <= 127))
+      return false;
+  }
+
+  return !all_zeroes;
+}
+
 // helper function for fdt_dump that does the actual recursive print.
 void fdt_dump_helper(devicetree tree, fdt_node node, int indent) {
   // check if valid node
@@ -519,29 +532,42 @@ void fdt_dump_helper(devicetree tree, fdt_node node, int indent) {
     return;
 
   // name of node, start of block
-  #define INDENT(indent) for (int i = 0; i < indent; i++) kprintf("  ")
+  #define INDENT(indent) for (int i = 0; i < indent; i++) kprintf("    ")
   INDENT(indent);
   kprintf("%s/ {\n", fdt_node_name(node));
 
+  // print properties
+  fdt_prop prop = fdt_prop_iter(node, NULL);
+  bool has_prop = prop != NULL;
+  for (; fdt_prop_valid(prop) ; prop = fdt_prop_iter(node, prop)) {
+    INDENT(indent + 1);
+    kprintf("%s = ", fdt_prop_name(tree, prop));
+
+    if (fdt_prolly_string((void *) (prop + 1), be2nv32(prop->len))) {
+      kprintf("|");
+      kputx(((void *) (prop + 1)), be2nv32(prop->len));
+      kprintf("|\n");
+    } else {
+      kprintf("<");
+      bool not_first = false;
+      for (uint32_t i = 0; i < be2nv32(prop->len); i += 4) {
+        if (not_first)
+          kputc(' ');
+        not_first = true;
+        kprintf("[%x]", be2nv32(*(uint32_t *) ((void *) (prop + 1) + i)));
+      }
+      kprintf(">\n");
+    }
+  }
+
   // print children
   fdt_node child = fdt_node_child_iter(node, NULL);
-  bool has_children = false;
+  bool has_children = child != NULL;
   for (; fdt_node_valid(child) ; child = fdt_node_child_iter(node, child)) {
-    if (has_children)
+    if (has_prop && has_children)
       kprintf("\n");
     has_children = true;
     fdt_dump_helper(tree, child, indent + 1);
-  }
-
-  // add a newline between children and properties if both exist
-  fdt_prop prop = fdt_prop_iter(node, NULL);
-  if (has_children && prop)
-    kprintf("\n");
-
-  // print properties
-  for (; fdt_prop_valid(prop) ; prop = fdt_prop_iter(node, prop)) {
-    INDENT(indent + 1);
-    kprintf("%s = <TODO>\n", fdt_prop_name(tree, prop));
   }
 
   // yay we are done! close the block
@@ -559,5 +585,5 @@ void fdt_dump(devicetree tree) {
 
 // TODO: things we want in our api:
 // - get the value of a node property
-// - search for a node
+// - aliases
 // - search by phandle for a node
