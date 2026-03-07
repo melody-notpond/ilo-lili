@@ -1,9 +1,5 @@
-TARGET = riscv64-unknown-elf
-CC     = clang
-CFLAGS = -march=rv64gc -mabi=lp64d -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -Wall -Wextra -Tkernel.ld -Iinclude/
-ifeq ($(CC),clang)
-	CFLAGS += -target $(TARGET) -mno-relax -Wno-unused-command-line-argument -Wthread-safety -gdwarf-4
-endif
+CC     = riscv64-elf-gcc
+CFLAGS = -march=rv64gc -mabi=lp64d -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -Wall -Wextra -Wpedantic -Tkernel.ld -Iinclude/
 CFLAGS += -g -O0
 CODE   = src/
 
@@ -36,4 +32,4 @@ gdb:
 	$(GDB) -q -x kernel.gdb
 
 clean:
-	-rm kernel 2>/dev/null
+	-@rm kernel 2>/dev/null || true

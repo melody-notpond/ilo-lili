@@ -17,7 +17,7 @@ void kinit(unsigned long long hartid, void *fdt) {
     while(1);
   }
 
-  kprintf("%p is a valid device tree\n", tree);
+  kprintf("%p is a valid device tree\n", (void *) tree);
 
   fdt_dump(tree);
 

@@ -45,7 +45,7 @@ struct fdt_prop {
 // assumption: an fdt_node points to FDT_BEGIN_NODE
 // assumption: an fdt_node node is valid iff node != NULL and
 //             *node == FDT_BEGIN_NODE
-struct fdt_node { };
+struct fdt_node;
 
 // validates a device tree. on failure, returns NULL. otherwise, returns a valid
 // devicetree value.
@@ -64,7 +64,7 @@ int fdt_count_mem_reserve_entries(devicetree tree) {
   if (!tree)
     return 0;
   struct fdt_reserve_entry *entries =
-    (struct fdt_reserve_entry *) (((void *) tree) +
+    (struct fdt_reserve_entry *) (((uint8_t *) tree) +
     be2nv32(tree->off_mem_rsvmap));
   int count = 0;
   for (; entries->address != 0 || entries->size != 0; count++, entries++);
@@ -76,7 +76,7 @@ int fdt_count_mem_reserve_entries(devicetree tree) {
 fdt_node fdt_root_node(devicetree tree) {
   if (!tree)
     return NULL;
-  uint32_t *p = (void *) tree + be2nv32(tree->off_dt_struct);
+  uint32_t *p = (uint32_t *) ((uint8_t *) tree + be2nv32(tree->off_dt_struct));
 
   // skip nops
   for (; *p == FDT_NOP; p++);
@@ -111,8 +111,8 @@ uint32_t *fdt_skip_name(fdt_node node) {
 // helper function that skips a property of a node. assumes *p == FDT_PROP.
 uint32_t *fdt_skip_property(uint32_t *p) {
   p++;
-  p = (void *) p + sizeof(struct fdt_prop) +
-      be2nv32(((struct fdt_prop *) p)->len);
+  p = (uint32_t *) ((uint8_t *) p + sizeof(struct fdt_prop) +
+      be2nv32(((struct fdt_prop *) p)->len));
   return align4(uint32_t, p);
 }
 
@@ -168,6 +168,9 @@ uint32_t *fdt_skip_node(uint32_t *p) {
 
       case FDT_END_NODE:
         deep--;
+        p++;
+        break;
+
       case FDT_NOP:
         p++;
         break;
@@ -554,7 +557,7 @@ void fdt_dump_helper(devicetree tree, fdt_node node, int indent) {
         if (not_first)
           kputc(' ');
         not_first = true;
-        kprintf("[%x]", be2nv32(*(uint32_t *) ((void *) (prop + 1) + i)));
+        kprintf("[%x]", be2nv32(*(uint32_t *) ((uint8_t *) (prop + 1) + i)));
       }
       kprintf(">\n");
     }

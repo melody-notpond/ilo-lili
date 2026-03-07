@@ -13,7 +13,7 @@ struct fdt_reserved {
 };
 
 // a valid devicetree object. do not dereference or modify values of this type.
-typedef const struct fdt_header *const devicetree;
+typedef const struct fdt_header *devicetree;
 
 // a devicetree node handle. do not modify values of this type.
 typedef const struct fdt_node *fdt_node;
