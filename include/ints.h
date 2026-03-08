@@ -1,5 +1,4 @@
-#ifndef INTS_H
-#define INTS_H
+#pragma once
 
 // converts little endian to big endian
 #define le2be32(n) \
@@ -34,5 +33,3 @@
 
 #define align16(t, p) \
     ((t *) (((intptr_t) (p) + 15) & ~15))
-
-#endif /* INTS_H */

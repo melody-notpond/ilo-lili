@@ -25,6 +25,15 @@ void kputs(char *s) {
     kputsl(s, strlen(s));
 }
 
+__attribute__((noreturn))
+void panic(char *func_name, char *msg) {
+  kputs("KERNEL PANIC!! ");
+  kputs(func_name);
+  kputs(": ");
+  kputs(msg);
+  kputc('\n');
+  while(1);
+}
 
 int kvprintf(const char* format, va_list va) {
     for (; *format; format++) {
@@ -37,7 +46,7 @@ int kvprintf(const char* format, va_list va) {
                     break;
 
                 case 'p': {
-                    uintptr_t p = (intptr_t) va_arg(va, void*);
+                    uintptr_t p = (uintptr_t) va_arg(va, void*);
                     if (p == 0) {
                         kputs("(null)");
                         break;
@@ -65,7 +74,7 @@ int kvprintf(const char* format, va_list va) {
                     break;
                 }
 
-                case 'l':
+                case 'l': {
                     format++;
                     if (*format == 'l'){
                         format++;
@@ -77,12 +86,8 @@ int kvprintf(const char* format, va_list va) {
                         break;
                     }
 
-                    goto _kvprintf_fallthrough;
-
-                case 'x':
-_kvprintf_fallthrough: {
                     uint64_t x;
-                    x = va_arg(va, int64_t);
+                    x = va_arg(va, uint64_t);
 
                     if (x == 0) {
                         kputc('0');
@@ -90,6 +95,31 @@ _kvprintf_fallthrough: {
                     }
 
                     static const size_t buffer_size = 16;
+                    char buffer[buffer_size];
+                    size_t len = 0;
+                    while (x != 0) {
+                        len++;
+                        buffer[buffer_size - len] = "0123456789abcdef"[x & 0xf];
+                        x >>= 4;
+                    }
+
+                    for (size_t i = buffer_size - len; i < buffer_size; i++) {
+                        kputc(buffer[i]);
+                    }
+
+                    break;
+                }
+
+                case 'x': {
+                    uint32_t x;
+                    x = va_arg(va, uint32_t);
+
+                    if (x == 0) {
+                        kputc('0');
+                        break;
+                    }
+
+                    static const size_t buffer_size = 8;
                     char buffer[buffer_size];
                     size_t len = 0;
                     while (x != 0) {

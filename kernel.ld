@@ -4,7 +4,7 @@ ENTRY( _start )
 SECTIONS
 {
     /* text: text code section */
-    . = 0x80200000;
+    . = 0x80050000;
     PROVIDE(text_start = .);
     .text : { *(.text) }
 

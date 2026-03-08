@@ -1,5 +1,4 @@
-#ifndef INTERRUPT_H
-#define INTERRUPT_H
+#pragma once
 
 #include <stdint.h>
 
@@ -44,5 +43,3 @@ typedef struct {
 
   int hartid;
 } trap_t;
-
-#endif /* INTERRUPT_H */

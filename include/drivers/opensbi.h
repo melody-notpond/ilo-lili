@@ -1,5 +1,4 @@
-#ifndef OPENSBI_H
-#define OPENSBI_H
+#pragma once
 
 #include <stdint.h>
 
@@ -41,5 +40,3 @@ struct sbiret sbi_debug_console_read(
 );
 
 struct sbiret sbi_debug_console_write_byte(uint8_t byte);
-
-#endif /* OPENSBI_H */

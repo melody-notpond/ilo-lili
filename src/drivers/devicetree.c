@@ -587,6 +587,7 @@ void fdt_dump(devicetree tree) {
 }
 
 // TODO: things we want in our api:
+// - actual memory reservations api
 // - get the value of a node property
 // - aliases
 // - search by phandle for a node

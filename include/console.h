@@ -1,5 +1,4 @@
-#ifndef CONSOLE_H
-#define CONSOLE_H
+#pragma once
 
 #include <stddef.h>
 
@@ -9,6 +8,9 @@ void kputsl(char *s, size_t len);
 
 void kputs(char *s);
 
+__attribute__((noreturn))
+void panic(char *func_name, char *msg);
+
 __attribute__ ((format(printf, 1, 2)))
 int kprintf(const char *fmt, ...);
 
@@ -16,5 +18,3 @@ int kprintf(const char *fmt, ...);
 void kputx(void *data, size_t size);
 
 void khexdump(void* data, size_t size);
-
-#endif /* CONSOLE_H */

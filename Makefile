@@ -15,7 +15,7 @@ ifdef WAIT_GDB
 	EFLAGS += -S
 endif
 ifdef GRAPHIC
-	EFLAGS += -serial stdio
+	EFLAGS += -serial stdio -device vga
 else
 	EFLAGS += -nographic
 endif

@@ -1,5 +1,4 @@
-#ifndef DEVICETREE_H
-#define DEVICETREE_H
+#pragma once
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -105,5 +104,3 @@ fdt_prop fdt_node_prop(devicetree tree, fdt_node node, char *name);
 
 // dumps the given device tree to the uart console.
 void fdt_dump(devicetree tree);
-
-#endif /* DEVICETREE_H */
