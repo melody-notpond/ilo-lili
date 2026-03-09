@@ -1,6 +1,7 @@
 #include "console.h"
 #include "drivers/devicetree.h"
 #include "interrupts.h"
+#include "mmu.h"
 #include "pages.h"
 
 extern int stack_top;
@@ -27,10 +28,15 @@ void kinit(unsigned long long hartid, void *fdt) {
   // this from the device tree instead
   const size_t raw_mem_start = 0x80000000;
   void *mem_start = &pages_bottom;
-  // 256mb
+  // ~256mb
   const size_t mem_size = 0x10000000 - ((size_t) mem_start - raw_mem_start);
 
   init_page_alloc(mem_start, mem_size);
+
+  mmu_t mmu = mmu_new_page_table();
+  set_mmu(mmu);
+
+  kprintf("mmu activated\n");
 
   while(1);
 }

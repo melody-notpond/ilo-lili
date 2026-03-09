@@ -12,12 +12,12 @@ SECTIONS
     .gnu_build_id : { *(.note.gnu.build-id) }
 
     . = ALIGN(4096);
-    PROVIDE(data_start = .);
-    .data : { *(.data) }
-
-    . = ALIGN(4096);
     PROVIDE(ro_data_start = .);
     .rodata : { *(.rodata) }
+
+    . = ALIGN(4096);
+    PROVIDE(data_start = .);
+    .data : { *(.data) }
 
     . = ALIGN(4096);
     PROVIDE( __global_pointer$ = . + (4K / 2) );
