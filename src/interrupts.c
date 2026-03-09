@@ -6,14 +6,10 @@
 trap_t *interrupt_handler(uint64_t cause, trap_t *trap) {
   if (cause & 0x8000000000000000) {
     cause &= 0x7fffffffffffffff;
-    kprintf("async cause: %lx\ntrap location: %lx\ntrap caller: %lx\n",
-      cause, trap->pc, trap->xs[REGISTER_RA]);
+    panic("async interrupt (%li) at %lx", cause, trap->pc);
   } else {
-    kprintf("sync cause: %lx\ntrap location: %lx\ntrap caller: %lx\n",
-      cause, trap->pc, trap->xs[REGISTER_RA]);
+    panic("sync interrupt (%li) at %lx", cause, trap->pc);
   }
-
-  while (true);
 
   return trap;
 }

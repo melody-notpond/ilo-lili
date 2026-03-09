@@ -16,10 +16,10 @@ void kinit(unsigned long long hartid, void *fdt) {
 
   devicetree tree = fdt_validate(fdt);
   if (!tree) {
-    panic("kinit", "invalid device tree!");
+    panic("invalid device tree!");
   }
 
-  kprintf("%p is a valid device tree and has %x memory reservations\n",
+  log("%p is a valid device tree and has %i memory reservations",
     (void *) tree, fdt_count_mem_reserve_entries(tree));
 
   fdt_dump(tree);
@@ -36,7 +36,7 @@ void kinit(unsigned long long hartid, void *fdt) {
   mmu_t mmu = mmu_new_page_table();
   set_mmu(mmu);
 
-  kprintf("mmu activated\n");
+  log("mmu activated");
 
   while(1);
 }

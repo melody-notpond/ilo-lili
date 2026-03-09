@@ -1,6 +1,6 @@
 CC     = riscv64-elf-gcc
 CFLAGS = -march=rv64gc -mabi=lp64d -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -Wall -Wextra -Wpedantic -Tkernel.ld -Iinclude/
-CFLAGS += -g -O0
+CFLAGS += -g -O1
 CODE   = src/
 
 GDB    = riscv64-elf-gdb

@@ -146,7 +146,7 @@ fdt_node fdt_node_iter(fdt_node node) {
         return NULL;
 
       default:
-        kprintf("invalid token %x\n", be2nv32(*p));
+        log("invalid token %x", be2nv32(*p));
         return NULL;
     }
   }
@@ -220,7 +220,7 @@ fdt_node fdt_node_child_iter(fdt_node parent, fdt_node child) {
           break;
 
         default:
-          kprintf("invalid token %x\n", be2nv32(*p));
+          log("invalid token %x", be2nv32(*p));
           return NULL;
       }
     }
@@ -245,7 +245,7 @@ fdt_node fdt_node_child_iter(fdt_node parent, fdt_node child) {
       break;
 
     default:
-      kprintf("invalid token %x\n", be2nv32(*p));
+      log("invalid token %x", be2nv32(*p));
       return NULL;
     }
   }
@@ -299,7 +299,7 @@ fdt_prop fdt_prop_iter(fdt_node node, fdt_prop prop) {
           break;
 
         default:
-          kprintf("invalid token %x\n", be2nv32(*p));
+          log("invalid token %x", be2nv32(*p));
           return NULL;
       }
     }
@@ -324,7 +324,7 @@ fdt_prop fdt_prop_iter(fdt_node node, fdt_prop prop) {
       break;
 
     default:
-      kprintf("invalid token %x\n", be2nv32(*p));
+      log("invalid token %x", be2nv32(*p));
       return NULL;
     }
   }
@@ -581,9 +581,14 @@ void fdt_dump_helper(devicetree tree, fdt_node node, int indent) {
 
 // dumps the given device tree to the uart console.
 void fdt_dump(devicetree tree) {
-  if (!tree)
+  if (!tree) {
+    log("devicetree is null");
     return;
+  }
+
+  log("start of device tree dump");
   fdt_dump_helper(tree, NULL, 0);
+  log("end of device tree dump");
 }
 
 // TODO: things we want in our api:

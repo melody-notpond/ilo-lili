@@ -32,7 +32,7 @@ void init_page_alloc(void *start, size_t size) {
 void *alloc_page(bool clear) {
   // TODO: free least recently used pages
   if (!free_list)
-    panic("alloc_page", "ran out of free pages");
+    panic("ran out of free pages");
 
   struct next_block *block = make_accessible(free_list);
   free_list = block->next;
